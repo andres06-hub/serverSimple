@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
@@ -58,6 +59,27 @@ func createTask(res http.ResponseWriter, req *http.Request) {
 	json.NewEncoder(res).Encode(newTask)
 }
 
+func getTask(res http.ResponseWriter, req *http.Request) {
+	fmt.Println("Searching task...")
+	// Get data, params
+	vars := mux.Vars(req) // Extracts the variables from the request
+	// Convert data to number
+	taskId, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		fmt.Fprint(res, "Invalid Id")
+	}
+	// for each task in the of items
+	for _, task := range tasks {
+		if task.Id == taskId {
+			fmt.Println("Exists task...")
+			res.Header().Set("Content-Type", "application/json")
+			res.WriteHeader(http.StatusOK)
+			json.NewEncoder(res).Encode(task)
+		}
+	}
+	// json.NewEncoder(res).Encode("Task not found")
+}
+
 func main() {
 	//Created router
 	router := mux.NewRouter().StrictSlash(true)
@@ -65,6 +87,7 @@ func main() {
 	router.HandleFunc("/", homeRoute)
 	router.HandleFunc("/task", getTasks).Methods("GET")
 	router.HandleFunc("/task", createTask).Methods("POST")
+	router.HandleFunc("/task/{id}", getTask).Methods("GET")
 	fmt.Println("Initial server on port: :5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
 }
