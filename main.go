@@ -44,7 +44,8 @@ func createTask(res http.ResponseWriter, req *http.Request) {
 	//get body
 	reqBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
-		res.Write([]byte("Insert a valid task"))
+		res.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(res, "Insert a valid task")
 	}
 	//
 	json.Unmarshal(reqBody, &newTask)
@@ -66,6 +67,7 @@ func getTask(res http.ResponseWriter, req *http.Request) {
 	// Convert data to number
 	taskId, err := strconv.Atoi(vars["id"])
 	if err != nil {
+		res.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(res, "Invalid Id")
 		return
 	}
@@ -79,6 +81,8 @@ func getTask(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusNotFound)
 	json.NewEncoder(res).Encode("Task not found")
 	return
 }
@@ -87,6 +91,7 @@ func deleteTask(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	taskId, err := strconv.Atoi(vars["id"])
 	if err != nil {
+		res.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(res, "Invalid Id")
 		return
 	}
@@ -95,11 +100,53 @@ func deleteTask(res http.ResponseWriter, req *http.Request) {
 		if task.Id == taskId {
 			tasks = append(tasks[:i], tasks[i+1:]...)
 			// json.NewEncoder(res).Encode("")
+			res.WriteHeader(http.StatusOK)
 			fmt.Fprintf(res, "The task with ID %v has been deleted", task.Id)
 			// json.NewEncoder(res).Encode("")
 			return
 		}
 	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(res).Encode("Task not found!")
+	return
+}
+
+func updateTask(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	taskId, err := strconv.Atoi(vars["id"])
+	//Task updated
+	var updatedTask task
+	if err != nil {
+		res.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(res, "Invalid Id")
+		return
+	}
+	//read body data
+	reqBody, error := ioutil.ReadAll(req.Body)
+	if error != nil {
+		res.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(res, "Please Enter valid data!")
+		return
+	}
+	// allocate data to "updatedTask"
+	json.Unmarshal(reqBody, &updatedTask)
+	// Validate
+	for i, task := range tasks {
+		if task.Id == taskId {
+			// The obtained task is deleted
+			_tasks := append(tasks[:i], tasks[i+1:]...)
+			// Asigned id
+			updatedTask.Id = taskId
+			// The updated task is added
+			tasks = append(_tasks, updatedTask)
+			res.WriteHeader(http.StatusOK)
+			fmt.Fprintf(res, "The task with id %v has bee updated successfully", taskId)
+			return
+		}
+	}
+	res.Header().Set("Content-Type", "application/json")
+	res.WriteHeader(http.StatusNotFound)
 	json.NewEncoder(res).Encode("Task not found!")
 	return
 }
@@ -112,6 +159,7 @@ func main() {
 	router.HandleFunc("/task", getTasks).Methods("GET")
 	router.HandleFunc("/task", createTask).Methods("POST")
 	router.HandleFunc("/task/{id}", getTask).Methods("GET")
+	router.HandleFunc("/task/{id}", updateTask).Methods("PUT")
 	router.HandleFunc("/task/{id}", deleteTask).Methods("DELETE")
 	fmt.Println("Initial server on port: :5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
