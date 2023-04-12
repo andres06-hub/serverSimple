@@ -67,6 +67,7 @@ func getTask(res http.ResponseWriter, req *http.Request) {
 	taskId, err := strconv.Atoi(vars["id"])
 	if err != nil {
 		fmt.Fprint(res, "Invalid Id")
+		return
 	}
 	// for each task in the of items
 	for _, task := range tasks {
@@ -75,9 +76,32 @@ func getTask(res http.ResponseWriter, req *http.Request) {
 			res.Header().Set("Content-Type", "application/json")
 			res.WriteHeader(http.StatusOK)
 			json.NewEncoder(res).Encode(task)
+			return
 		}
 	}
-	// json.NewEncoder(res).Encode("Task not found")
+	json.NewEncoder(res).Encode("Task not found")
+	return
+}
+
+func deleteTask(res http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	taskId, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		fmt.Fprint(res, "Invalid Id")
+		return
+	}
+
+	for i, task := range tasks {
+		if task.Id == taskId {
+			tasks = append(tasks[:i], tasks[i+1:]...)
+			// json.NewEncoder(res).Encode("")
+			fmt.Fprintf(res, "The task with ID %v has been deleted", task.Id)
+			// json.NewEncoder(res).Encode("")
+			return
+		}
+	}
+	json.NewEncoder(res).Encode("Task not found!")
+	return
 }
 
 func main() {
@@ -88,6 +112,7 @@ func main() {
 	router.HandleFunc("/task", getTasks).Methods("GET")
 	router.HandleFunc("/task", createTask).Methods("POST")
 	router.HandleFunc("/task/{id}", getTask).Methods("GET")
+	router.HandleFunc("/task/{id}", deleteTask).Methods("DELETE")
 	fmt.Println("Initial server on port: :5051")
 	log.Fatal(http.ListenAndServe(":5051", router))
 }
