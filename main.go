@@ -154,13 +154,15 @@ func updateTask(res http.ResponseWriter, req *http.Request) {
 func main() {
 	//Created router
 	router := mux.NewRouter().StrictSlash(true)
+	host := "0.0.0.0:5051"
+	// router.PathPrefix("/api")
 	//Created routers
-	router.HandleFunc("/", homeRoute)
+	router.HandleFunc("/", homeRoute).Methods("GET")
 	router.HandleFunc("/task", getTasks).Methods("GET")
 	router.HandleFunc("/task", createTask).Methods("POST")
 	router.HandleFunc("/task/{id}", getTask).Methods("GET")
 	router.HandleFunc("/task/{id}", updateTask).Methods("PUT")
 	router.HandleFunc("/task/{id}", deleteTask).Methods("DELETE")
-	fmt.Println("Initial server on port: :5051")
-	log.Fatal(http.ListenAndServe(":5051", router))
+	fmt.Println("Initial server on port: ", host)
+	log.Fatal(http.ListenAndServe(host, router))
 }
